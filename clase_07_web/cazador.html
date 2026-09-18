@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cazador de Estrellas</title>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #111827;
+            font-family: Arial, sans-serif;
+        }
+
+        canvas {
+            border: 3px solid #ffffff;
+            background: #0a0a2e;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="juego" width="600" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById("juego");
+        const ctx = canvas.getContext("2d");
+
+        const ANCHO = canvas.width;
+        const ALTO = canvas.height;
+        const teclas = {};
+
+        let juegoTerminado = false;
+        let puntos = 0;
+
+        const cazador = {
+            x: ANCHO / 2,
+            y: 370,
+            ancho: 50,
+            alto: 12,
+            velocidad: 5
+        };
+
+        const estrellaDorada = crearEstrella("#ffd700", 10, 1, 1);
+        const estrellaRoja = crearEstrella("#ff3333", 12, 5, 2);
+
+        document.addEventListener("keydown", (evento) => {
+            teclas[evento.key] = true;
+
+            if (evento.key === "r" || evento.key === "R") {
+                reiniciarJuego();
+            }
+        });
+
+        document.addEventListener("keyup", (evento) => {
+            teclas[evento.key] = false;
+        });
+
+        function crearEstrella(color, radio, valor, multiplicadorVelocidad) {
+            return {
+                x: Math.random() * (ANCHO - radio * 2) + radio,
+                y: 0,
+                radio,
+                color,
+                valor,
+                multiplicadorVelocidad,
+                velocidad: 2 * multiplicadorVelocidad
+            };
+        }
+
+        function reiniciarEstrella(estrella) {
+            estrella.x = Math.random() * (ANCHO - estrella.radio * 2) + estrella.radio;
+            estrella.y = 0;
+        }
+
+        function reiniciarJuego() {
+            puntos = 0;
+            juegoTerminado = false;
+            cazador.x = ANCHO / 2;
+            reiniciarEstrella(estrellaDorada);
+            reiniciarEstrella(estrellaRoja);
+        }
+
+        function actualizar() {
+            if (juegoTerminado) {
+                return;
+            }
+
+            moverCazador();
+            actualizarEstrella(estrellaDorada);
+            actualizarEstrella(estrellaRoja);
+
+            if (puntos <= -3) {
+                juegoTerminado = true;
+            }
+        }
+
+        function moverCazador() {
+            if (teclas["ArrowLeft"]) {
+                cazador.x -= cazador.velocidad;
+            }
+
+            if (teclas["ArrowRight"]) {
+                cazador.x += cazador.velocidad;
+            }
+
+            const mitadCazador = cazador.ancho / 2;
+            cazador.x = Math.max(mitadCazador, Math.min(ANCHO - mitadCazador, cazador.x));
+        }
+
+        function actualizarEstrella(estrella) {
+            const velocidadDorada = Math.max(1, 2 + puntos * 0.2);
+            estrella.velocidad = velocidadDorada * estrella.multiplicadorVelocidad;
+            estrella.y += estrella.velocidad;
+
+            if (estrella.y - estrella.radio > ALTO) {
+                puntos -= 1;
+                reiniciarEstrella(estrella);
+                return;
+            }
+
+            if (colisionaConCazador(estrella)) {
+                puntos += estrella.valor;
+                reiniciarEstrella(estrella);
+            }
+        }
+
+        function colisionaConCazador(estrella) {
+            const izquierda = cazador.x - cazador.ancho / 2;
+            const derecha = cazador.x + cazador.ancho / 2;
+            const arriba = cazador.y;
+            const abajo = cazador.y + cazador.alto;
+
+            return estrella.x + estrella.radio >= izquierda &&
+                estrella.x - estrella.radio <= derecha &&
+                estrella.y + estrella.radio >= arriba &&
+                estrella.y - estrella.radio <= abajo;
+        }
+
+        function dibujar() {
+            dibujarFondo();
+            dibujarEstrella(estrellaDorada);
+            dibujarEstrella(estrellaRoja);
+            dibujarCazador();
+            dibujarPuntaje();
+
+            if (juegoTerminado) {
+                dibujarMensajePerdiste();
+            }
+        }
+
+        function dibujarFondo() {
+            ctx.fillStyle = "#0a0a2e";
+            ctx.fillRect(0, 0, ANCHO, ALTO);
+        }
+
+        function dibujarEstrella(estrella) {
+            ctx.fillStyle = estrella.color;
+            ctx.beginPath();
+            ctx.arc(estrella.x, estrella.y, estrella.radio, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function dibujarCazador() {
+            ctx.fillStyle = "#00ccff";
+            ctx.fillRect(cazador.x - cazador.ancho / 2, cazador.y, cazador.ancho, cazador.alto);
+        }
+
+        function dibujarPuntaje() {
+            ctx.fillStyle = "white";
+            ctx.font = "20px monospace";
+            ctx.fillText("Puntos: " + puntos, 10, 24);
+            ctx.font = "14px monospace";
+            ctx.fillText("Flechas: mover | R: reiniciar", 10, 390);
+        }
+
+        function dibujarMensajePerdiste() {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+            ctx.fillRect(0, 0, ANCHO, ALTO);
+
+            ctx.fillStyle = "#ffffff";
+            ctx.textAlign = "center";
+            ctx.font = "42px monospace";
+            ctx.fillText("Perdiste", ANCHO / 2, ALTO / 2);
+
+            ctx.font = "18px monospace";
+            ctx.fillText("Presioná R para reiniciar", ANCHO / 2, ALTO / 2 + 36);
+            ctx.textAlign = "left";
+        }
+
+        function loop() {
+            actualizar();
+            dibujar();
+            requestAnimationFrame(loop);
+        }
+
+        loop();
+    </script>
+</body>
+</html>

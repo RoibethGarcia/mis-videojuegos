@@ -1,0 +1,5 @@
+Asset: background.png
+Source: Breakout graphics — Marcus / OpenGameArt
+URL: https://opengameart.org/content/breakout-graphics
+Downloaded file URL: https://opengameart.org/sites/default/files/breakout_bg.png
+License: CC0
